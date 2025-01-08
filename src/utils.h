@@ -1,5 +1,7 @@
 #ifndef _utils_h
 #define _utils_h
+#include <string>
+#include <cstdint>
 
 enum class AcquireResult : unsigned int {
     ALLOWED = 0,

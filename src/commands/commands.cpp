@@ -3,7 +3,7 @@
 
 void WeaponRestrictorManagerHelp()
 {
-    g_SMAPI->ConPrint("[Weapon Restrictor] Swiftly Console Filter Menu\n");
+    g_SMAPI->ConPrint("[Weapon Restrictor] Swiftly Weapon Restrictor Menu\n");
     g_SMAPI->ConPrint("[Weapon Restrictor] Usage: sw_weaponrestrictor <command>\n");
     g_SMAPI->ConPrint("[Weapon Restrictor]  reload     - Reloads the Weapon Restrictor config.\n");
 }

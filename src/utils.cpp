@@ -33,7 +33,7 @@ void* GetCCSGameRules()
 GearSlot GetSlotByIdx(uint16_t itemidx)
 {
     if (auto it = g_Ext.ItemDefIndex.find(itemidx); it != g_Ext.ItemDefIndex.end()) {
-        return it->second.gearSlot;
+        return it->second.second;
     }
     return GearSlot::GEAR_SLOT_INVALID;
 }
@@ -41,7 +41,7 @@ GearSlot GetSlotByIdx(uint16_t itemidx)
 std::string GetWeaponNameByIdx(uint16_t itemidx)
 {
     if (auto it = g_Ext.ItemDefIndex.find(itemidx); it != g_Ext.ItemDefIndex.end()) {
-        return it->second.weaponName;
+        return it->second.first;
     }
     return "unknown";
 }

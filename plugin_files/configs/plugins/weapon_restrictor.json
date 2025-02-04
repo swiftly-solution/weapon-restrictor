@@ -1,0 +1,22 @@
+{
+    "map_restriction": {
+        "de_mirage": [
+            "weapon_ak47"
+        ]
+    },
+    "per_team": {
+        "weapon_ak47": {
+            "t": 1,
+            "ct": 1
+        }
+    },
+    "per_player": {
+        "weapon_ak47": {
+            "default": 5,
+            "5": 7,
+            "10": 15
+        }
+    },
+    "enable_in_warmup": true,
+    "limit_per_team": true
+}

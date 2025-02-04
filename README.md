@@ -16,6 +16,34 @@
 </div>
 
 ---
+
+### Installation 👀
+
+1. Download the newest [release](https://github.com/swiftly-solution/weapon-restrictor/releases)
+2. Everything is drag & drop, so I think you can do it!
+
+### Configuring the plugin 🧐
+
+- After installing the plugin, you can change the prefix and the weapon restrict limits for each weapon from `addons/swiftly/configs/plugins/weapon_restrictor.json`
+
+### Restriction Modes ⚙️
+
+- You can choose between two restriction modes, `per_team` or `per_player`.
+
+### Creating A Pull Request 😃
+
+1. Fork the Project
+2. Create your Feature Branch
+3. Commit your Changes
+4. Push to the Branch
+5. Open a Pull Request
+
+### Have ideas/Found bugs? 💡
+
+Join [Swiftly Discord Server](https://swiftlycs2.net/discord) and send a message in the topic from `📕╎plugins-sharing` of this plugin!
+
+---
+
 ### Build Requirements
 -   [hl2sdk](https://github.com/alliedmodders/hl2sdk/tree/cs2) (Downloads automatically with the git cloning using Recurse Submodules)
 -   [metamod-source](https://github.com/alliedmodders/metamod-source) (Downloads automatically with the git cloning using Recurse Submodules)

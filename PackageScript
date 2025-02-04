@@ -32,3 +32,18 @@ for task in MMSPlugin.binaries:
 with open(os.path.join(builder.buildPath, 'pdblog.txt'), 'wt') as fp:
   for line in pdb_list:
     fp.write(line.path + '\n')
+
+
+gamedata_folder = builder.AddFolder(os.path.join('addons', 'swiftly', 'gamedata', 'weapon-restrictor'))
+builder.AddCopy(os.path.join(builder.sourcePath, 'plugin_files', 'gamedata', 'weapon-restrictor', 'signatures.json'), gamedata_folder)
+
+configs_folder = builder.AddFolder(os.path.join('addons', 'swiftly', 'configs', 'plugins'))
+builder.AddCopy(os.path.join(builder.sourcePath, 'plugin_files', 'configs', 'plugins', 'weapon_restrictor.json'), configs_folder)
+
+translations_folder = builder.AddFolder(os.path.join('addons', 'swiftly', 'translations'))
+builder.AddCopy(os.path.join(builder.sourcePath, 'plugin_files', 'translations', 'translation.weapon_restrict.json'), translations_folder)
+
+plugin_folder = builder.AddFolder(os.path.join('addons', 'swiftly', 'plugins', 'weapon_restrictor'))
+builder.AddCopy(os.path.join(builder.sourcePath, 'plugin_files', 'plugins', 'weapon_restrictor', 'core.lua'), plugin_folder)
+builder.AddCopy(os.path.join(builder.sourcePath, 'plugin_files', 'plugins', 'weapon_restrictor', 'events.lua'), plugin_folder)
+builder.AddCopy(os.path.join(builder.sourcePath, 'plugin_files', 'plugins', 'weapon_restrictor', 'exports.lua'), plugin_folder)

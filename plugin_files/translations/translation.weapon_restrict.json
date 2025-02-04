@@ -1,0 +1,6 @@
+{
+    "cannot_pickup": {
+        "en": "You cannot pick {green}{WEAPON_NAME}{default} because it's restricted (LIMIT: {green}{LIMIT}{default}}",
+        "ro": "Nu poti sa iei {green}{WEAPON_NAME}{default} pentru ca este restricted (LIMITĂ: {green}{LIMIT}{default})"
+    }
+}

@@ -3,6 +3,12 @@
 #include <fstream>
 #include <swiftly-ext/files.h>
 #include <swiftly-ext/sdk.h>
+#include <swiftly-ext/event.h>
+
+#include <lua/lua.h>
+#include <lua/lauxlib.h>
+#include <lua/lualib.h>
+#include <LuaBridge/LuaBridge.h>
 
 #include <ehandle.h>
 #include "sdk/services.h"
@@ -14,11 +20,11 @@ AcquireResult Hook_CCSPlayer_ItemServices_CanAcquire(void* _this, void* econItem
 ////////////////////////////////////////////////////////////
 IGameEventSystem* g_pGameEventSystem = nullptr;
 IVEngineServer2* engine = nullptr;
+ISource2Server* server = nullptr;
 
 WeaponRestrictor g_Ext;
 CUtlVector<FuncHookBase *> g_vecHooks;
 CREATE_GLOBALVARS();
-
 
 FuncHook<decltype(Hook_CCSPlayer_ItemServices_CanAcquire)>TCCSPlayer_ItemServices_CanAcquire(Hook_CCSPlayer_ItemServices_CanAcquire, "CCSPlayer_ItemServices_CanAcquire");
 
@@ -43,6 +49,7 @@ bool WeaponRestrictor::Load(std::string& error, SourceHook::ISourceHook *SHPtr, 
     }
 
     GET_IFACE_CURRENT(GetEngineFactory, engine, IVEngineServer, INTERFACEVERSION_VENGINESERVER);
+    GET_IFACE_ANY(GetServerFactory, server, ISource2Server, INTERFACEVERSION_SERVERGAMEDLL);
     GET_IFACE_CURRENT(GetEngineFactory, g_pGameEventSystem, IGameEventSystem, GAMEEVENTSYSTEM_INTERFACE_VERSION);
 
     LoadRestrictions();
@@ -66,8 +73,21 @@ void WeaponRestrictor::AllPluginsLoaded()
 
 }
 
+void SetPlayerImmunityStatus(int playerid, bool state)
+{
+    if(state) {
+        if(g_Ext.playerImmunity.find(playerid) == g_Ext.playerImmunity.end()) g_Ext.playerImmunity.insert(playerid);
+    } else {
+        if(g_Ext.playerImmunity.find(playerid) != g_Ext.playerImmunity.end()) g_Ext.playerImmunity.erase(playerid);
+    }
+}
+
 bool WeaponRestrictor::OnPluginLoad(std::string pluginName, void* pluginState, PluginKind_t kind, std::string& error)
 {
+    if(kind == PluginKind_t::Lua) {
+        luabridge::getGlobalNamespace((lua_State*)pluginState)
+            .addFunction("SetImmunityStatus", SetPlayerImmunityStatus);
+    }
     return true;
 }
 
@@ -113,10 +133,10 @@ void WeaponRestrictor::LoadRestrictions()
             const auto& weaponsArray = it->value;
 
             if (weaponsArray.IsArray()) {
-                std::vector<std::string> weapons;
+                std::set<std::string> weapons;
                 for (auto& weapon : weaponsArray.GetArray()) {
                     if (weapon.IsString()) {
-                        weapons.push_back(weapon.GetString());
+                        weapons.insert(weapon.GetString());
                     }
                 }
                 map_restriction[mapName] = weapons;
@@ -172,13 +192,107 @@ void WeaponRestrictor::LoadRestrictions()
     }
 }
 
-AcquireResult Hook_CCSPlayer_ItemServices_CanAcquire(void* _this, void* econItemView, AcquireMethod acquireMethod, void* unk)
+int GetPlayerCount() {
+    if(!engine) return 0;
+    if(!engine->GetServerGlobals()) return 0;
+
+    int count = 0;
+
+    for(int i = 0; i < engine->GetServerGlobals()->maxClients; i++) {
+        auto controller = GameEntitySystem()->GetEntityInstance(CEntityIndex(i+1));
+        if(!controller) continue;
+        count++;
+    }
+
+    return count;
+}
+
+int CountActiveWeaponsOnPlayers(uint16_t item_idx) {
+    if(!engine) return 0;
+    if(!engine->GetServerGlobals()) return 0;
+
+    int count = 0;
+
+    for(int i = 0; i < engine->GetServerGlobals()->maxClients; i++) {
+        auto controller = GameEntitySystem()->GetEntityInstance(CEntityIndex(i+1));
+        if(!controller) continue;
+
+        CHandle<CEntityInstance> pawn = SDKGetProp<CHandle<CEntityInstance>>(controller, "CBasePlayerController", "m_hPawn");
+        if(!pawn.IsValid()) continue;
+
+        void* pPawn = (void*)pawn.Get();
+        if(!pPawn) continue;
+
+        void* weaponServices = SDKGetProp<void*>(pPawn, "CBasePlayerPawn", "m_pWeaponServices");
+        if(!weaponServices) continue;
+
+        CUtlVector<CHandle<CEntityInstance>> *myWeapons = SDKGetPropPtr<CUtlVector<CHandle<CEntityInstance>>>(weaponServices, "CPlayer_WeaponServices", "m_hMyWeapons");
+
+        FOR_EACH_VEC(*myWeapons, j)
+        {
+            void* cbaseweapon = (*myWeapons)[j].Get();
+            if(!cbaseweapon) continue;
+            void* attrManager = SDKGetProp<void*>(cbaseweapon, "CEconEntity", "m_AttributeManager");
+            if(!attrManager) continue;
+            void* itemView = SDKGetProp<void*>(attrManager, "CAttributeContainer", "m_Item");
+            if(!itemView) continue;
+            uint16_t itemidx = SDKGetProp<uint16_t>(itemView, "CEconItemView", "m_iItemDefinitionIndex");
+
+            if(itemidx == item_idx) count++;
+        }
+    }
+
+    return count;
+}
+
+int CountActiveWeaponsOnPlayersWithTeam(uint16_t item_idx, uint8_t teamnum) {
+    if(!engine) return 0;
+    if(!engine->GetServerGlobals()) return 0;
+
+    int count = 0;
+
+    for(int i = 0; i < engine->GetServerGlobals()->maxClients; i++) {
+        auto controller = GameEntitySystem()->GetEntityInstance(CEntityIndex(i+1));
+        if(!controller) continue;
+
+        CHandle<CEntityInstance> pawn = SDKGetProp<CHandle<CEntityInstance>>(controller, "CBasePlayerController", "m_hPawn");
+        if(!pawn.IsValid()) continue;
+
+        void* pPawn = (void*)pawn.Get();
+        if(!pPawn) continue;
+
+        uint8_t team = SDKGetProp<uint8_t>(pPawn, "CBaseEntity", "m_iTeamNum");
+        if(team != teamnum) continue;
+
+        void* weaponServices = SDKGetProp<void*>(pPawn, "CBasePlayerPawn", "m_pWeaponServices");
+        if(!weaponServices) continue;
+
+        CUtlVector<CHandle<CEntityInstance>> *myWeapons = SDKGetPropPtr<CUtlVector<CHandle<CEntityInstance>>>(weaponServices, "CPlayer_WeaponServices", "m_hMyWeapons");
+
+        FOR_EACH_VEC(*myWeapons, j)
+        {
+            void* cbaseweapon = (*myWeapons)[j].Get();
+            if(!cbaseweapon) continue;
+            void* attrManager = SDKGetProp<void*>(cbaseweapon, "CEconEntity", "m_AttributeManager");
+            if(!attrManager) continue;
+            void* itemView = SDKGetProp<void*>(attrManager, "CAttributeContainer", "m_Item");
+            if(!itemView) continue;
+            uint16_t itemidx = SDKGetProp<uint16_t>(itemView, "CEconItemView", "m_iItemDefinitionIndex");
+
+            if(itemidx == item_idx) count++;
+        }
+    }
+
+    return count;
+}
+
+AcquireResult CheckAcquire(void* _this, void* econItemView, AcquireMethod acquireMethod, void* unk, int& playerid, int& iidx, int& limit, std::string& weapon_name)
 {
     CHandle<CEntityInstance> controller = SDKGetProp<CHandle<CEntityInstance>>(((CPlayer_ItemServices*)_this)->m_pPawn, "CBasePlayerPawn", "m_hController");
 
-    int playerid = controller.GetEntryIndex() - 1;
+    playerid = controller.GetEntryIndex() - 1;
 
-    if(g_Ext.playerImmunity.count(playerid))
+    if(g_Ext.playerImmunity.find(playerid) != g_Ext.playerImmunity.end())
         return AcquireResult::ALLOWED;
 
     void* gameRules = GetCCSGameRules();
@@ -191,25 +305,68 @@ AcquireResult Hook_CCSPlayer_ItemServices_CanAcquire(void* _this, void* econItem
     std::string mapName = engine->GetServerGlobals()->mapname.ToCStr();
     uint16_t itemidx = SDKGetProp<uint16_t>(econItemView, "CEconItemView", "m_iItemDefinitionIndex");
     std::string itemWeaponName = GetWeaponNameByIdx(itemidx);
+    iidx = (int)itemidx;
+    weapon_name = itemWeaponName;
+    limit = 0;
 
     if (auto it = g_Ext.map_restriction.find(mapName); it != g_Ext.map_restriction.end())
-    {
-        for (const std::string& restrictionWeaponName : it->second)
-        {
-            if (itemWeaponName == restrictionWeaponName)
-            {
-                return AcquireResult::NOT_ALLOWED_BY_PROHIBITION;
-            }
-        }
-    }
+        if(it->second.find(itemWeaponName) != it->second.end()) 
+            return AcquireResult::NOT_ALLOWED_BY_MAP;
 
     if(g_Ext.limit_per_team) {
-        // Implementation limitation logic
+        if(g_Ext.per_team.find(itemWeaponName) == g_Ext.per_team.end()) return AcquireResult::ALLOWED;
+        auto teamid = SDKGetProp<uint8_t>(((CPlayer_ItemServices*)_this)->m_pPawn, "CBaseEntity", "m_iTeamNum");
 
-        return AcquireResult::ALLOWED; 
+        auto limits = g_Ext.per_team[itemWeaponName];
+        int weaponLimit = (teamid == 2 ? limits["t"] : limits["ct"]);
+        if(weaponLimit == -1) return AcquireResult::ALLOWED;
+
+        limit = weaponLimit;
+        
+        int itemCount = CountActiveWeaponsOnPlayersWithTeam(itemidx, teamid);
+        if(itemCount >= weaponLimit) return AcquireResult::NOT_ALLOWED_BY_PROHIBITION;
+    } else {
+        if(g_Ext.per_player.find(itemWeaponName) == g_Ext.per_player.end()) return AcquireResult::ALLOWED;
+        int itemCount = CountActiveWeaponsOnPlayers(itemidx);
+        auto limits = g_Ext.per_player[itemWeaponName];
+        
+        int weaponLimit = (limits.find("default") != limits.end() ? limits["default"] : -1);
+        int playerCount = GetPlayerCount();
+
+        for(auto it = limits.begin(); it != limits.end(); ++it)
+        {
+            if(it->first == "default") continue;
+
+            try {
+                if(std::stoi(it->first.c_str()) < playerCount)
+                    weaponLimit = it->second;
+                else
+                    break;
+            } catch(std::exception& e) { }
+        }
+
+        if(weaponLimit == -1) return AcquireResult::ALLOWED;
+        
+        limit = weaponLimit;
+        
+        if(itemCount >= weaponLimit) return AcquireResult::NOT_ALLOWED_BY_PROHIBITION;
     }
-    
+
     return AcquireResult::ALLOWED;
+}
+
+AcquireResult Hook_CCSPlayer_ItemServices_CanAcquire(void* _this, void* econItemView, AcquireMethod acquireMethod, void* unk)
+{
+    int playerid, itemidx, limit;
+    std::string weapon_name;
+    AcquireResult res = CheckAcquire(_this, econItemView, acquireMethod, unk, playerid, itemidx, limit, weapon_name);
+
+    if(res != AcquireResult::ALLOWED) {
+        std::any val;
+        TriggerEvent("weapon-restrictor.ext", "OnItemAcquireFail", { playerid, itemidx, limit, weapon_name }, val);
+    }
+
+    return res;
 }
 
 const char* WeaponRestrictor::GetAuthor()

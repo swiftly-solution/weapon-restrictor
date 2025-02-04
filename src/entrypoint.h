@@ -13,19 +13,21 @@
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/istreamwrapper.h>
+#include <map>
+#include <set>
 
 #include "utils.h"
 
 class WeaponRestrictor : public SwiftlyExt
 {
 public:
-    std::map<std::string, std::vector<std::string>> map_restriction;
+    std::map<std::string, std::set<std::string>> map_restriction;
     std::map<std::string, std::map<std::string, int>> per_team;
     std::map<std::string, std::map<std::string, int>> per_player;
     bool enable_in_warmup;
     bool limit_per_team;
 
-    std::map<int, int> playerImmunity;
+    std::set<int> playerImmunity;
 
     std::map<uint16_t, std::pair<std::string, GearSlot>> ItemDefIndex = {
         {1, {"weapon_deagle", GearSlot::GEAR_SLOT_PISTOL}},

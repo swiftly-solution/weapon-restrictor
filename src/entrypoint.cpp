@@ -5,10 +5,7 @@
 #include <swiftly-ext/sdk.h>
 #include <swiftly-ext/event.h>
 
-#include <lua/lua.h>
-#include <lua/lauxlib.h>
-#include <lua/lualib.h>
-#include <LuaBridge/LuaBridge.h>
+#include <Embedder.h>
 
 #include <ehandle.h>
 #include "sdk/services.h"
@@ -84,10 +81,8 @@ void SetPlayerImmunityStatus(int playerid, bool state)
 
 bool WeaponRestrictor::OnPluginLoad(std::string pluginName, void* pluginState, PluginKind_t kind, std::string& error)
 {
-    if(kind == PluginKind_t::Lua) {
-        luabridge::getGlobalNamespace((lua_State*)pluginState)
-            .addFunction("SetImmunityStatus", SetPlayerImmunityStatus);
-    }
+    GetGlobalNamespace((EContext*)pluginState)
+        .addFunction("SetImmunityStatus", SetPlayerImmunityStatus);
     return true;
 }
 

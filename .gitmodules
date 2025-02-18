@@ -13,3 +13,7 @@
 [submodule "vendor/embedder"]
 	path = vendor/embedder
 	url = https://github.com/swiftly-solution/embedder
+[submodule "alliedmodders/hl2sdk"]
+	path = alliedmodders/hl2sdk
+	url = https://github.com/swiftly-solution/hl2sdk
+	branch = cs2

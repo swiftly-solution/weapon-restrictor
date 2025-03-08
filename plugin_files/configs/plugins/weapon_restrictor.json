@@ -18,5 +18,6 @@
         }
     },
     "enable_in_warmup": true,
-    "limit_per_team": true
+    "limit_per_team": true,
+    "prefix": "[{lime}Swiftly{default}]"
 }

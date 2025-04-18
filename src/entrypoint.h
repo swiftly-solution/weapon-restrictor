@@ -8,7 +8,8 @@
 
 #include <swiftly-ext/core.h>
 #include <swiftly-ext/extension.h>
-#include <swiftly-ext/hooks/NativeHooks.h>
+#include <swiftly-ext/hooks/function.h>
+#include <swiftly-ext/hooks/vfunction.h>
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -64,12 +65,12 @@ public:
         {61, {"weapon_usp_silencer", GearSlot::GEAR_SLOT_PISTOL}},
         {63, {"weapon_cz75a", GearSlot::GEAR_SLOT_PISTOL}},
         {64, {"weapon_revolver", GearSlot::GEAR_SLOT_PISTOL}}
-    };    
+    };
 
 public:
-    bool Load(std::string& error, SourceHook::ISourceHook *SHPtr, ISmmAPI* ismm, bool late);
+    bool Load(std::string& error, SourceHook::ISourceHook* SHPtr, ISmmAPI* ismm, bool late);
     bool Unload(std::string& error);
-    
+
     void AllExtensionsLoaded();
     void AllPluginsLoaded();
 

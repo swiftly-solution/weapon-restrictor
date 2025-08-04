@@ -389,5 +389,5 @@ const char* WeaponRestrictor::GetVersion()
 
 const char* WeaponRestrictor::GetWebsite()
 {
-    return "https://swiftlycs2.net/";
+    return "https://swiftlys2.net/";
 }
